@@ -427,6 +427,7 @@ namespace Protocol
                         }
                         System.Diagnostics.Debug.Assert(_window != null);
 
+                        
                         // TODO: Drag
                         if (packet.MODE == 5)
                         {
@@ -437,16 +438,32 @@ namespace Protocol
                                 packetId = buffer.ReadInt(true);
                                 if (packetId != ServerboundPlayingPacket.ClickWindowPacketId)
                                 {
-                                    
+                                    throw new UnexpectedValueException("ClickWindowPacketId");
                                 }
+
                                 ClickWindowPacket dragPacket = ClickWindowPacket.Read(buffer);
                                 if (dragPacket.SLOT == -999)
                                 {
                                     break;
                                 }
+
                                 packets.Enqueue(dragPacket);
                             }
-                            _window.Handle(packets, _OUT_PACKETS);
+
+                            switch (packet.BUTTON)
+                            {
+                                case 0:
+                                    _window.HandleLeftDrag(packets, _OUT_PACKETS);
+                                    break;
+                                case 4:
+                                    _window.HandleRightDrag(packets, _OUT_PACKETS);
+                                    break;
+                                case 8:
+                                    // TODO: send SetSlotPacket
+                                    break;
+                            }
+
+                            packets.Dispose();
                         }
                         else
                         {

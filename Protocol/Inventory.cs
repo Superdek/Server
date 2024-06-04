@@ -17,7 +17,6 @@ namespace Protocol
         private int _count = 0;
         public int Count => _count;
         protected readonly Item?[] _items;
-        internal readonly InventoryRenderer _Renderer = new();  // Disposable
 
         public System.Collections.Generic.IEnumerable<Item?> Items
         {
@@ -281,7 +280,6 @@ namespace Protocol
             System.Diagnostics.Debug.Assert(_count == 0);
 
             // Release resources.
-            _Renderer.Dispose();
 
             // Finish.
             System.GC.SuppressFinalize(this);
@@ -304,7 +302,6 @@ namespace Protocol
             {
                 slotItem.SetCount(slotItem.Count - 1);
                 cursor.SetItem(new Item(slotItem.Type, 1));
-                Render(index);
                 return;
             }
 
@@ -320,7 +317,6 @@ namespace Protocol
 
             cursorItem.SetCount(cursorItem.Count + 1);
             slotItem.SetCount(slotItem.Count - 1);
-            Render(index);
         }
 
         internal virtual void TakeHalf(ItemCursor cursor, int index)
@@ -344,7 +340,6 @@ namespace Protocol
             int count = slotItem.Count - remain;
             slotItem.SetCount(remain);
             cursor.SetItem(new Item(slotItem.Type, count));
-            Render(index);
             return;
         }
 
@@ -358,8 +353,7 @@ namespace Protocol
             {
                 cursor.SetItem(slotItem);
                 _items[index] = null;
-                --_count;
-                Render(index);
+                SubCount();
                 return ;
             }
 
@@ -373,19 +367,17 @@ namespace Protocol
                 return;
             }
 
-            int n = cursorItem.MaxCount - cursorItem.Count;
-            if (slotItem.Count > n)
+            int blank = cursorItem.MaxCount - cursorItem.Count;
+            if (slotItem.Count > blank)
             {
-                cursorItem.SetCount(cursorItem.Count + n);
-                slotItem.SetCount(slotItem.Count - n);
-                Render(index);
+                cursorItem.SetCount(cursorItem.Count + blank);
+                slotItem.SetCount(slotItem.Count - blank);
                 return;
             }
 
             cursorItem.SetCount(cursorItem.Count + slotItem.Count);
             _items[index] = null;
-            --_count;
-            Render(index);
+            SubCount();
         }
 
         internal virtual void PutOne(ItemCursor cursor, int index)
@@ -404,7 +396,6 @@ namespace Protocol
             {
                 _items[index] = new Item(cursorItem.Type, 1);
                 cursorItem.SetCount(cursorItem.Count - 1);
-                Render(index);
                 return;
             }
 
@@ -420,7 +411,6 @@ namespace Protocol
 
             cursorItem.SetCount(cursorItem.Count - 1);
             slotItem.SetCount(slotItem.Count + 1);
-            Render(index);
         }
 
         internal virtual void PutAll(ItemCursor cursor, int index)
@@ -434,7 +424,6 @@ namespace Protocol
                 _items[index] = cursorItem;
                 cursor.SetItem(null);
                 ++_count;
-                Render(index);
                 return;
             }
 
@@ -453,13 +442,11 @@ namespace Protocol
             {
                 slotItem.SetCount(slotItem.Count + n);
                 cursorItem.SetCount(cursorItem.Count - n);
-                Render(index);
                 return;
             }
 
             slotItem.SetCount(slotItem.Count + cursorItem.Count);
             cursor.SetItem(null);
-            Render(index);
         }
 
         internal virtual void Swap(ItemCursor cursor, int index)
@@ -473,7 +460,6 @@ namespace Protocol
             Item temp = cursorItem;
             cursor.SetItem(slotItem);
             _items[index] = temp;
-            Render(index);
             return;
         }
 
@@ -491,8 +477,7 @@ namespace Protocol
             }
 
             _items[index] = null;
-            --_count;
-            Render(index);
+            SubCount();
             return item;
         }
 
@@ -506,7 +491,6 @@ namespace Protocol
 
             _items[index] = item;
             ++_count;
-            Render(index);
         }
 
         internal virtual bool Exists(int index)
@@ -521,11 +505,6 @@ namespace Protocol
             return slotData;
         }
 
-        internal virtual void Render(int index)
-        {
-            SlotData slotData = GetSlotData(index);
-            _Renderer.Render(index, slotData);
-        }
 
         internal void AddCount()
         {
@@ -667,7 +646,6 @@ namespace Protocol
             // Assertion.
 
             // Release resources.
-            _Renderer.Dispose();
 
             // Finish.
             base.Dispose();
@@ -803,7 +781,6 @@ namespace Protocol
                 if (!Exists(index))
                 {
                     _items.SetValue(clickItem, index);
-                    Render(index);
                     return;
                 }
             }
@@ -842,12 +819,10 @@ namespace Protocol
                     int remain = clickItem.Count - blank;
                     slotItem.SetCount(slotItem.MaxCount);
                     clickItem.SetCount(remain);
-                    Render(index);
                     continue;
                 }
 
                 slotItem.SetCount(slotItem.Count + clickItem.Count);
-                Render(index);
                 return;
             }
 
@@ -862,7 +837,6 @@ namespace Protocol
                 if (slotItem == null)
                 {
                     _items.SetValue(clickItem, index);
-                    Render(index);
                     return;
                 }
             }
@@ -901,12 +875,10 @@ namespace Protocol
                     int remain = clickItem.Count - blank;
                     slotItem.SetCount(slotItem.MaxCount);
                     clickItem.SetCount(remain);
-                    Render(index);
                     continue;
                 }
 
                 slotItem.SetCount(slotItem.Count + clickItem.Count);
-                Render(index);
                 return;
             }
 
@@ -921,7 +893,6 @@ namespace Protocol
                 if (slotItem == null)
                 {
                     _items.SetValue(clickItem, index);
-                    Render(index);
                     return;
                 }
             }
@@ -959,12 +930,10 @@ namespace Protocol
                     int remain = clickItem.Count - blank;
                     slotItem.SetCount(slotItem.MaxCount);
                     clickItem.SetCount(remain);
-                    Render(index);
                     continue;
                 }
 
                 slotItem.SetCount(slotItem.Count + clickItem.Count);
-                Render(index);
                 return;
             }
 
@@ -982,7 +951,6 @@ namespace Protocol
 
                 _items[index] = clickItem;
                 AddCount();
-                Render(index);
                 return;
             }
         }
@@ -1019,12 +987,10 @@ namespace Protocol
                     int remain = clickItem.Count - blank;
                     slotItem.SetCount(slotItem.MaxCount);
                     clickItem.SetCount(remain);
-                    Render(index);
                     continue;
                 }
 
                 slotItem.SetCount(slotItem.Count + clickItem.Count);
-                Render(index);
                 return;
             }
 
@@ -1181,8 +1147,6 @@ namespace Protocol
             {
                 _items[buttonIndex] = cursorItem;
                 _items[cursorIndex] = buttonItem;
-                Render(buttonIndex);
-                Render(cursorIndex);
                 return;
             }
 
@@ -1208,8 +1172,68 @@ namespace Protocol
 
             _items[buttonIndex] = cursorItem;
             _items[cursorIndex] = buttonItem;
-            Render(buttonIndex);
-            Render(cursorIndex);
+        }
+
+        internal void DoubleClick(Item? cursorItem)
+        {
+            System.Diagnostics.Debug.Assert(cursorItem != null);
+
+            for (int index = 1; index <= 45; ++index)
+            {
+                Item? slotItem = GetItem(index);
+                if (slotItem == null)
+                {
+                    continue;
+                }
+
+                if (slotItem.Count == slotItem.MaxCount)
+                {
+                    continue;
+                }
+
+                if (slotItem.Type != cursorItem.Type)
+                {
+                    continue;
+                }
+
+                int blank = cursorItem.MaxCount - cursorItem.Count;
+                if (slotItem.Count > blank)
+                {
+                    cursorItem.SetCount(cursorItem.MaxCount);
+                    slotItem.SetCount(slotItem.Count - blank);
+                    return;
+                }
+
+                cursorItem.SetCount(cursorItem.Count + slotItem.Count);
+                _items[index] = null;
+                SubCount();
+            }
+
+            for (int index = 1; index <= 45; ++index)
+            {
+                Item? slotItem = GetItem(index);
+                if (slotItem == null)
+                {
+                    continue;
+                }
+
+                if (slotItem.Type != cursorItem.Type)
+                {
+                    continue;
+                }
+
+                int blank = cursorItem.MaxCount - cursorItem.Count;
+                if (slotItem.Count > blank)
+                {
+                    cursorItem.SetCount(cursorItem.MaxCount);
+                    slotItem.SetCount(slotItem.Count - blank);
+                    return;
+                }
+
+                cursorItem.SetCount(cursorItem.Count + slotItem.Count);
+                _items[index] = null;
+                SubCount();
+            }
         }
     }
 
@@ -1223,6 +1247,8 @@ namespace Protocol
         private readonly object _SharedObject = new();
 
         private readonly NumList _IdList = new();  // Disposable
+
+        internal readonly InventoryRenderer _Renderer = new();  // Disposable
 
         public PublicInventory(int count) : base(count) { }
 
@@ -1602,6 +1628,12 @@ namespace Protocol
 
                 MoveToEmptyInventory(clickItem);
             }
+        }
+
+        internal virtual void Render(int index)
+        {
+            SlotData slotData = GetSlotData(index);
+            _Renderer.Render(index, slotData);
         }
     }
 

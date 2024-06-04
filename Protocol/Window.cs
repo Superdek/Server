@@ -476,7 +476,74 @@ namespace Protocol
 
         }
 
-        internal void Handle(Queue<ClickWindowPacket> packets, Queue<ClientboundPlayingPacket> outPackets)
+        internal void HandleRightDrag(Queue<ClickWindowPacket> packets, Queue<ClientboundPlayingPacket> outPackets)
+        {
+            System.Diagnostics.Debug.Assert(!_disposed);
+            System.Diagnostics.Debug.Assert(_windowId >= 0);
+
+            Item? cursorItem = _cursor.GetItem();
+            if (cursorItem == null)
+            {
+                return;
+            }
+
+            SlotFiltering(packets, cursorItem);
+
+            int remain = cursorItem.Count - packets.Count;
+            while (packets.Empty == false)
+            {
+                ClickWindowPacket packet = packets.Dequeue();
+
+                int index = packet.SLOT;
+                Item? slotItem = _selfInventory.GetItem(index);
+                if (slotItem == null)
+                {
+                    _selfInventory.PutItem(new Item(cursorItem.Type, 1), index);
+                    continue;
+                }
+
+                slotItem.SetCount(slotItem.Count + 1);
+            }
+
+            if (remain == 0)
+            {
+                _cursor.SetItem(null);
+            }
+            else
+            {
+                cursorItem.SetCount(remain);
+            }
+
+            cursorItem = _cursor.GetItem();
+            if (cursorItem == null)
+            {
+                outPackets.Enqueue(new SetSlotPacket(-1, 0, new()));
+            }
+            else
+            {
+                outPackets.Enqueue(new SetSlotPacket(-1, 0, cursorItem.ConvertToPacketFormat()));
+            }
+
+            // console log
+            {
+                if (_windowId == 0)
+                {
+                    _selfInventory.Print();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Assert(_publicInventory != null);
+                    _publicInventory.Print();
+                    _selfInventory.Print();
+                }
+
+                cursorItem = _cursor.GetItem();
+                if (cursorItem != null)
+                    System.Console.WriteLine($"itemCursor: {cursorItem.Type} {cursorItem.Count}");
+            }
+        }
+
+        internal void HandleLeftDrag(Queue<ClickWindowPacket> packets, Queue<ClientboundPlayingPacket> outPackets)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
             System.Diagnostics.Debug.Assert(_windowId >= 0);
@@ -508,13 +575,11 @@ namespace Protocol
                 {
                     remain += count - blank;
                     slotItem.SetCount(slotItem.MaxCount);
-                    _selfInventory.Render(index);
                     continue;
                 }
 
                 int sum = slotItem.Count + count;
                 slotItem.SetCount(sum);
-                _selfInventory.Render(index);
             }
 
             if (remain == 0)
@@ -526,13 +591,14 @@ namespace Protocol
                 cursorItem.SetCount(remain);
             }
 
-            if (_cursor.GetItem() == null)
+            cursorItem = _cursor.GetItem();
+            if (cursorItem == null)
             {
                 outPackets.Enqueue(new SetSlotPacket(-1, 0, new()));
             }
             else
             {
-                outPackets.Enqueue(new SetSlotPacket(-1, 0, _cursor.GetItem().ConvertToPacketFormat()));
+                outPackets.Enqueue(new SetSlotPacket(-1, 0, cursorItem.ConvertToPacketFormat()));
             }
 
             // console log
@@ -556,13 +622,17 @@ namespace Protocol
 
         private void SlotFiltering(Queue<ClickWindowPacket> packets, Item? cursorItem)
         {
+            System.Diagnostics.Debug.Assert(cursorItem != null);
             for (int i = 0; i < packets.Count; ++i)
             {
                 ClickWindowPacket packet = packets.Dequeue();
                 if (_windowId != packet.WINDOW_ID)
                 {
+                    if (packet.WINDOW_ID == 0)
+                    {
+                        return;
+                    }
                     throw new UnexpectedValueException("ClickWindowPacket.WindowId");
-                    // return
                 }
 
                 int index = packet.SLOT;
@@ -711,38 +781,29 @@ namespace Protocol
                         case 0:
                             if (_windowId == 0)
                             {
-                                // TODO: done
                                 _selfInventory.LeftClick(_cursor, index);
                                 break;
                             }
-
-                            // TODO: done
                             LeftClickWithPublicInventory(index);
 
                             /*ClickLeftMouseButtonWithPublicInventory(
                                     selfInventory, index, slotData,
                                     outPackets);*/
-
                             break;
                         case 1:
                             if (_windowId == 0)
                             {
-                                // TODO: done
                                 _selfInventory.RightClick(_cursor, index);
                                 break;
                             }
-                            
-                            // TODO: done
                             RightClickWithPublicInventory(index);
 
                             /*ClickRightMouseButtonWithPublicInventory(
                                     selfInventory, index, slotData,
                                     outPackets);*/
-
                             break;
                     }
                     break;
-
                 case 1:
                     switch (button)
                     {
@@ -753,31 +814,24 @@ namespace Protocol
                         case 1:
                             if (_windowId == 0)
                             {
-                                // _itemCursor?
                                 _selfInventory.ShiftClick(index);
                                 break;
                             }
-                            // TODO: done
                             ShiftClickWithPublicInventory(index);
-
                             break;
                     }
                     break;
-
                 case 2:
                     if (_windowId == 0)
                     {
-                        // TODO: done
                         _selfInventory.NumberKey(button, index);
                         break;
                     }
-
-                    // TODO: done
                     NumberKeyWithPublicInventory(button, index);
                     break;
                 case 4:
                     // TODO: left click item drop
-                    if (button == 0 && index == -999)
+                    /*if (button == 0 && index == -999)
                     {
                         Item? cursorItem = _cursor.GetItem();
                         if (cursorItem == null)
@@ -788,36 +842,35 @@ namespace Protocol
                         // TODO: make ItemEntity
 
                         // TODO: spawn ItemEntity in player position
-                        /*Entity.Vector pos = player.Position;
+                        Entity.Vector pos = player.Position;
                         SpawnObjectPacket spawnObjectPacket = new(1, Guid.NewGuid(), 1, pos.X, pos.Y, pos.Z, 1, 1, 1, 1, 1, 1);
-                        outPackets.Enqueue(spawnObjectPacket);*/
+                        outPackets.Enqueue(spawnObjectPacket);
                     }
 
                     if (button == 1 && index == -999)
                     {
 
-                    }
-
+                    }*/
                     break;
                 case 5:
-                    if (button == 0)
-                    {
-                        
-                    }
-                    if (button != 1)
-                    {
-                        return;
-                    }
-
+                    System.Diagnostics.Debug.Assert(false);
                     break;
                 case 6:
-                    // Drop item
-                    /*if (_itemCursor != null)
+                    // TODO: fill cursor with double clicked item
+                    if (_windowId == 0)
                     {
-                        _itemCursor = null;
-                    }*/
-                    /*System.Diagnostics.Debug.Assert(_cursor.GetItem() == null);
-                    ResetWindowForcibly(selfInventory, outPackets, true);*/
+                        Item? cursorItem = _cursor.GetItem();
+                        if (cursorItem == null)
+                        {
+                            return;
+                        }
+
+                        if (cursorItem.Count == cursorItem.MaxCount)
+                        {
+                            return;
+                        }
+                        _selfInventory.DoubleClick(cursorItem);
+                    }
                     break;
             }
             if (_cursor.GetItem() == null)
@@ -841,7 +894,6 @@ namespace Protocol
                     _publicInventory.Print();
                     _selfInventory.Print();
                 }
-
                 Item? cursorItem = _cursor.GetItem();
                 if (cursorItem != null)
                     System.Console.WriteLine($"itemCursor: {cursorItem.Type} {cursorItem.Count}");
