@@ -459,10 +459,9 @@ namespace Protocol
                                     _window.HandleRightDrag(packets, _OUT_PACKETS);
                                     break;
                                 case 8:
-                                    // TODO: send SetSlotPacket
+                                    _window.HandleMiddleDrag(packets, _OUT_PACKETS);
                                     break;
                             }
-
                             packets.Dispose();
                         }
                         else

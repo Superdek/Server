@@ -476,6 +476,64 @@ namespace Protocol
 
         }
 
+        internal void HandleMiddleDrag(Queue<ClickWindowPacket> packets, Queue<ClientboundPlayingPacket> outPackets)
+        {
+            System.Diagnostics.Debug.Assert(!_disposed);
+            System.Diagnostics.Debug.Assert(_windowId >= 0);
+
+            Item? cursorItem = _cursor.GetItem();
+            if (cursorItem == null)
+            {
+                return;
+            }
+
+            while (packets.Empty == false)
+            {
+                ClickWindowPacket packet = packets.Dequeue();
+                if (_windowId != packet.WINDOW_ID)
+                {
+                    if (packet.WINDOW_ID == 0)
+                    {
+                        return;
+                    }
+                    throw new UnexpectedValueException("ClickWindowPacket.WindowId");
+                }
+
+                int index = packet.SLOT;
+                Item? slotItem = _selfInventory.GetItem(index);
+                SlotData slotData = _selfInventory.GetSlotData(index);
+                outPackets.Enqueue(new SetSlotPacket((sbyte)_windowId, (short)index, slotData));
+            }
+
+            cursorItem = _cursor.GetItem();
+            if (cursorItem == null)
+            {
+                outPackets.Enqueue(new SetSlotPacket(-1, 0, new()));
+            }
+            else
+            {
+                outPackets.Enqueue(new SetSlotPacket(-1, 0, cursorItem.ConvertToPacketFormat()));
+            }
+
+            // console log
+            {
+                if (_windowId == 0)
+                {
+                    _selfInventory.Print();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Assert(_publicInventory != null);
+                    _publicInventory.Print();
+                    _selfInventory.Print();
+                }
+
+                cursorItem = _cursor.GetItem();
+                if (cursorItem != null)
+                    System.Console.WriteLine($"itemCursor: {cursorItem.Type} {cursorItem.Count}");
+            }
+        }
+
         internal void HandleRightDrag(Queue<ClickWindowPacket> packets, Queue<ClientboundPlayingPacket> outPackets)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
