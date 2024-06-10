@@ -2,6 +2,7 @@
 using Containers;
 using System;
 using System.Numerics;
+using System.Reflection;
 
 namespace Protocol
 {
@@ -427,8 +428,6 @@ namespace Protocol
                         }
                         System.Diagnostics.Debug.Assert(_window != null);
 
-                        
-                        // TODO: Drag
                         if (packet.MODE == 5)
                         {
                             Queue<ClickWindowPacket> packets = new Queue<ClickWindowPacket>();
@@ -442,6 +441,18 @@ namespace Protocol
                                 }
 
                                 ClickWindowPacket dragPacket = ClickWindowPacket.Read(buffer);
+                                {
+                                    System.Console.WriteLine();
+                                    System.Console.WriteLine(
+                                        $"WindowId: {dragPacket.WINDOW_ID}, " +
+                                        $"SlotNumber: {dragPacket.SLOT}, " +
+                                        $"ButtonNumber: {dragPacket.BUTTON}, " +
+                                        $"ActionNumber: {dragPacket.ACTION}, " +
+                                        $"ModeNumber: {dragPacket.MODE}, " +
+                                        $"SlotData.Id: {dragPacket.SLOT_DATA.Id}, " +
+                                        $"SlotData.Count: {dragPacket.SLOT_DATA.Count}, ");
+                                }
+
                                 if (dragPacket.SLOT == -999)
                                 {
                                     break;
@@ -466,7 +477,7 @@ namespace Protocol
                         }
                         else
                         {
-                            _window.Handle(packet.WINDOW_ID, packet.MODE, packet.BUTTON, packet.SLOT, _OUT_PACKETS);
+                            _window.Handle(packet, _OUT_PACKETS);
                         }
 
                         _OUT_PACKETS.Enqueue(new ClientboundConfirmTransactionPacket(

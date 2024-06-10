@@ -2,6 +2,7 @@
 using Containers;
 using System;
 using System.Dynamic;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Xml;
 
@@ -500,9 +501,9 @@ namespace Protocol
                 }
 
                 int index = packet.SLOT;
-                Item? slotItem = _selfInventory.GetItem(index);
                 SlotData slotData = _selfInventory.GetSlotData(index);
                 outPackets.Enqueue(new SetSlotPacket((sbyte)_windowId, (short)index, slotData));
+                // render
             }
 
             cursorItem = _cursor.GetItem();
@@ -536,6 +537,7 @@ namespace Protocol
 
         internal void HandleRightDrag(Queue<ClickWindowPacket> packets, Queue<ClientboundPlayingPacket> outPackets)
         {
+
             System.Diagnostics.Debug.Assert(!_disposed);
             System.Diagnostics.Debug.Assert(_windowId >= 0);
 
@@ -545,22 +547,62 @@ namespace Protocol
                 return;
             }
 
-            SlotFiltering(packets, cursorItem);
-
             int remain = cursorItem.Count - packets.Count;
             while (packets.Empty == false)
             {
                 ClickWindowPacket packet = packets.Dequeue();
+
+                /*if (_windowId != packet.WINDOW_ID)
+                {
+                    throw new UnexpectedValueException("ClickWindowPacket.WindowId");
+                }
+
+                if (_windowId == 0)
+                {
+                    if (packet.WINDOW_ID > 0)
+                    {
+                        if (_ambiguous)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            throw new UnexpectedValueException("ClickWindowPacket.WindowId");
+                        }
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Assert(_windowId > 0);
+                    if (packet.WINDOW_ID == 0)
+                    {
+                        if (_ambiguous)
+                        {
+                            // Ignored...
+                            return;
+                        }
+                        else
+                        {
+                            throw new UnexpectedValueException("ClickWindowPacket.WindowId");
+                        }
+                    }
+                    else if (_windowId != packet.WINDOW_ID)
+                    {
+                        throw new UnexpectedValueException("ClickWindowPacket.WindowId");
+                    }
+                }*/
 
                 int index = packet.SLOT;
                 Item? slotItem = _selfInventory.GetItem(index);
                 if (slotItem == null)
                 {
                     _selfInventory.PutItem(new Item(cursorItem.Type, 1), index);
+                    // render
                     continue;
                 }
 
                 slotItem.SetCount(slotItem.Count + 1);
+                // render
             }
 
             if (remain == 0)
@@ -612,8 +654,6 @@ namespace Protocol
                 return;
             }
 
-            SlotFiltering(packets, cursorItem);
-
             int count = cursorItem.Count / packets.Count;
             int remain = cursorItem.Count % packets.Count;
             while (packets.Empty == false)
@@ -625,6 +665,7 @@ namespace Protocol
                 if (slotItem == null)
                 {
                     _selfInventory.PutItem(new Item(cursorItem.Type, count), index);
+                    // render
                     continue;
                 }
 
@@ -633,11 +674,13 @@ namespace Protocol
                 {
                     remain += count - blank;
                     slotItem.SetCount(slotItem.MaxCount);
+                    // render
                     continue;
                 }
 
                 int sum = slotItem.Count + count;
                 slotItem.SetCount(sum);
+                // render
             }
 
             if (remain == 0)
@@ -678,46 +721,9 @@ namespace Protocol
             }
         }
 
-        private void SlotFiltering(Queue<ClickWindowPacket> packets, Item? cursorItem)
-        {
-            System.Diagnostics.Debug.Assert(cursorItem != null);
-            for (int i = 0; i < packets.Count; ++i)
-            {
-                ClickWindowPacket packet = packets.Dequeue();
-                if (_windowId != packet.WINDOW_ID)
-                {
-                    if (packet.WINDOW_ID == 0)
-                    {
-                        return;
-                    }
-                    throw new UnexpectedValueException("ClickWindowPacket.WindowId");
-                }
+        
 
-                int index = packet.SLOT;
-
-                Item? slotItem = _selfInventory.GetItem(index);
-                if (slotItem == null)
-                {
-                    packets.Enqueue(packet);
-                    continue;
-                }
-
-                if (cursorItem.Type != slotItem.Type)
-                {
-                    continue;
-                }
-
-                if (slotItem.Count == slotItem.MaxCount)
-                {
-                    continue;
-                }
-
-                packets.Enqueue(packet);
-            }
-        }
-
-        public void Handle(int windowId, int mode, int button, int index,
-            Queue<ClientboundPlayingPacket> outPackets)
+        public void Handle(ClickWindowPacket packet, Queue<ClientboundPlayingPacket> outPackets)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -725,7 +731,7 @@ namespace Protocol
 
             if (_windowId == 0)
             {
-                if (windowId > 0)
+                if (packet.WINDOW_ID > 0)
                 {
                     if (_ambiguous)
                     {
@@ -740,7 +746,7 @@ namespace Protocol
             else
             {
                 System.Diagnostics.Debug.Assert(_windowId > 0);
-                if (windowId == 0)
+                if (packet.WINDOW_ID == 0)
                 {
                     if (_ambiguous)
                     {
@@ -752,7 +758,7 @@ namespace Protocol
                         throw new UnexpectedValueException("ClickWindowPacket.WindowId");
                     }
                 }
-                else if (_windowId != windowId)
+                else if (_windowId != packet.WINDOW_ID)
                 {
                     throw new UnexpectedValueException("ClickWindowPacket.WindowId");
                 }
@@ -760,110 +766,44 @@ namespace Protocol
 
             _ambiguous = false;
 
+            int index = packet.SLOT;
+
             if (index < 0)
             {
                 throw new UnexpectedValueException("ClickWindowPacket.SlotNumber");
             }
 
-
-
-            // TODO: 
-            /*if (_windowId == 0)
-            {
-                // self
-                if (mode == 0 && button == 0)
-                {
-                    selfInventory.LeftClick(_cursor, index);
-                }
-                else if (mode == 0 && button == 1)
-                {
-
-                }
-                else if (mode == 1 && button == 0)
-                {
-                    selfInventory.ShiftClick(index);
-                }
-                else if (mode == 1 && button == 1)
-                {
-                    selfInventory.ShiftClick(index);
-                }
-                else if (mode == 2 && button == 0)
-                {
-
-                }
-            }
-            else
-            {
-                // public
-                if (mode == 0 && button == 0)
-                {
-                    LeftClickWithPublicInventory(index);
-                }
-                else if (mode == 0 && button == 1)
-                {
-
-                }
-                else if (mode == 1 && button == 0)
-                {
-
-                }
-                else if (mode == 1 && button == 1)
-                {
-
-                }
-                else if (mode == 2 && button == 0)
-                {
-
-                }
-            }
-            if (_cursor.GetItem() == null)
-            {
-                outPackets.Enqueue(new SetSlotPacket(-1, 0, new()));
-            }
-            else
-            {
-                outPackets.Enqueue(new SetSlotPacket(-1, 0, _cursor.GetItem().ConvertToPacketFormat()));
-            }*/
-
-
-
-            switch (mode)
+            switch (packet.MODE)
             {
                 default:
                     throw new UnexpectedValueException("ClickWindowPacket.ModeNumber");
                 case 0:
-                    switch (button)
+                    switch (packet.BUTTON)
                     {
                         default:
                             throw new UnexpectedValueException("ClickWindowPacket.ButtonNumber");
                         case 0:
                             if (_windowId == 0)
                             {
+                                CheckSlotData(packet);
                                 _selfInventory.LeftClick(_cursor, index);
                                 break;
                             }
                             LeftClickWithPublicInventory(index);
-
-                            /*ClickLeftMouseButtonWithPublicInventory(
-                                    selfInventory, index, slotData,
-                                    outPackets);*/
                             break;
                         case 1:
                             if (_windowId == 0)
                             {
+                                CheckSlotData(packet);
                                 _selfInventory.RightClick(_cursor, index);
                                 break;
                             }
                             RightClickWithPublicInventory(index);
-
-                            /*ClickRightMouseButtonWithPublicInventory(
-                                    selfInventory, index, slotData,
-                                    outPackets);*/
                             break;
                     }
                     break;
                 case 1:
-                    switch (button)
+                    switch (packet.BUTTON)
                     {
                         default:
                             throw new UnexpectedValueException("ClickWindowPacket.ButtonNumber");
@@ -873,6 +813,7 @@ namespace Protocol
                             if (_windowId == 0)
                             {
                                 _selfInventory.ShiftClick(index);
+                                // render
                                 break;
                             }
                             ShiftClickWithPublicInventory(index);
@@ -882,10 +823,13 @@ namespace Protocol
                 case 2:
                     if (_windowId == 0)
                     {
-                        _selfInventory.NumberKey(button, index);
+                        _selfInventory.NumberKey(packet.BUTTON, index);
+                        // render
                         break;
                     }
-                    NumberKeyWithPublicInventory(button, index);
+                    NumberKeyWithPublicInventory(packet.BUTTON, index);
+                    break;
+                case 3:
                     break;
                 case 4:
                     // TODO: left click item drop
@@ -914,7 +858,6 @@ namespace Protocol
                     System.Diagnostics.Debug.Assert(false);
                     break;
                 case 6:
-                    // TODO: fill cursor with double clicked item
                     if (_windowId == 0)
                     {
                         Item? cursorItem = _cursor.GetItem();
@@ -927,7 +870,8 @@ namespace Protocol
                         {
                             return;
                         }
-                        _selfInventory.DoubleClick(cursorItem);
+                        CheckSlotData(packet);
+                        _selfInventory.DoubleClick(_cursor);
                     }
                     break;
             }
@@ -955,6 +899,27 @@ namespace Protocol
                 Item? cursorItem = _cursor.GetItem();
                 if (cursorItem != null)
                     System.Console.WriteLine($"itemCursor: {cursorItem.Type} {cursorItem.Count}");
+            }
+        }
+
+        private void CheckSlotData(ClickWindowPacket packet)
+        {
+            System.Diagnostics.Debug.Assert(_windowId == 0);
+
+            int index = packet.SLOT;
+            Item? slotItem = _selfInventory.GetItem(index);
+            if (slotItem != null)
+            {
+                if (slotItem.ConvertToPacketFormat().Id != packet.SLOT_DATA.Id)
+                {
+                    throw new UnexpectedValueException("ClickWindowPacket.SLOT_DATA");
+                }
+                return;
+            }
+
+            if (packet.SLOT_DATA.Id != -1)
+            {
+                throw new UnexpectedValueException("ClickWindowPacket.SLOT_DATA");
             }
         }
 

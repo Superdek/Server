@@ -652,54 +652,6 @@ namespace Protocol
             _disposed = true;
         }
 
-        internal void ShiftClick(int clickIndex)
-        {
-            Item? clickItem = _items[clickIndex];
-            _items[clickIndex] = null;
-            if (clickItem == null)
-            {
-                return;
-            }
-
-            if (clickIndex == 0)
-            {
-                MoveToEndOfInventory(clickItem);
-                return;
-            }
-
-            if (clickIndex >= 1 && clickIndex <= 8 || clickIndex == 45)
-            {
-                MoveToInventory(clickItem);
-                return;
-            }
-
-            if (clickIndex >= 9 && clickIndex <= 35)
-            {
-                bool isCanMove = IsCanMoveShieldOrArmorSlot(clickItem);
-                if (isCanMove)
-                {
-                    MoveToShieldOrArmor(clickItem);
-                    return;
-                }
-
-                MoveToHotBar(clickItem);
-                return;
-            }
-
-            if (clickIndex >= 36 && clickIndex <= 44)
-            {
-                bool isCanMove = IsCanMoveShieldOrArmorSlot(clickItem);
-                if (isCanMove)
-                {
-                    MoveToShieldOrArmor(clickItem);
-                    return;
-                }
-
-                MoveToMainInventory(clickItem);
-                return;
-            }
-        }
-
         public bool IsCanMoveShieldOrArmorSlot(Item clickItem)
         {
             if (clickItem.IsHelmet)
@@ -846,7 +798,7 @@ namespace Protocol
         {
             for (int index = 9; index <= 35; ++index)
             {
-                if (clickItem.Count == 1)
+                if (clickItem.MaxCount == 1)
                 {
                     break;
                 }
@@ -1015,6 +967,20 @@ namespace Protocol
             base.TakeAll(cursor, index);
         }
 
+        internal override void PutAll(ItemCursor cursor, int index)
+        {
+            Item? cursorItem = cursor.GetItem();
+            System.Diagnostics.Debug.Assert(cursorItem != null);
+
+            if (index >= 5 && index <= 8)
+            {
+                PutArmor(cursor, index);
+                return;
+            }
+
+            base.PutAll(cursor, index);
+        }
+
         private void TakeArmor(ItemCursor cursor, int index)
         {
             Item? slotItem = _items[index];
@@ -1035,21 +1001,6 @@ namespace Protocol
                 return;
             }
         }
-
-        internal override void PutAll(ItemCursor cursor, int index)
-        {
-            Item? cursorItem = cursor.GetItem();
-            System.Diagnostics.Debug.Assert(cursorItem != null);
-
-            if (index >= 5 && index <= 8)
-            {
-                PutArmor(cursor, index);
-                return;
-            }
-
-            base.PutAll(cursor, index);
-        }
-
         private void PutArmor(ItemCursor cursor, int index)
         {
             Item? cursorItem = cursor.GetItem();
@@ -1070,6 +1021,8 @@ namespace Protocol
 
             base.PutAll(cursor, index);
         }
+
+
 
         internal void LeftClick(ItemCursor cursor, int index)
         {
@@ -1133,6 +1086,54 @@ namespace Protocol
             Swap(cursor, index);
         }
 
+        internal void ShiftClick(int clickIndex)
+        {
+            Item? clickItem = _items[clickIndex];
+            _items[clickIndex] = null;
+            if (clickItem == null)
+            {
+                return;
+            }
+
+            if (clickIndex == 0)
+            {
+                MoveToEndOfInventory(clickItem);
+                return;
+            }
+
+            if (clickIndex >= 1 && clickIndex <= 8 || clickIndex == 45)
+            {
+                MoveToInventory(clickItem);
+                return;
+            }
+
+            if (clickIndex >= 9 && clickIndex <= 35)
+            {
+                bool isCanMove = IsCanMoveShieldOrArmorSlot(clickItem);
+                if (isCanMove)
+                {
+                    MoveToShieldOrArmor(clickItem);
+                    return;
+                }
+
+                MoveToHotBar(clickItem);
+                return;
+            }
+
+            if (clickIndex >= 36 && clickIndex <= 44)
+            {
+                bool isCanMove = IsCanMoveShieldOrArmorSlot(clickItem);
+                if (isCanMove)
+                {
+                    MoveToShieldOrArmor(clickItem);
+                    return;
+                }
+
+                MoveToMainInventory(clickItem);
+                return;
+            }
+        }
+
         internal void NumberKey(int buttonIndex, int cursorIndex)
         {
             buttonIndex += 36;
@@ -1174,8 +1175,9 @@ namespace Protocol
             _items[cursorIndex] = buttonItem;
         }
 
-        internal void DoubleClick(Item? cursorItem)
+        internal void DoubleClick(ItemCursor cursor)
         {
+            Item? cursorItem = cursor.GetItem();
             System.Diagnostics.Debug.Assert(cursorItem != null);
 
             for (int index = 1; index <= 45; ++index)
