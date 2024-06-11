@@ -94,7 +94,7 @@ public abstract class Entity implements ICommandListener {
     public boolean onGround;
     public boolean positionChanged;
     public boolean B;
-    public boolean C;
+    public boolean C;  // any position changed, this.positionChanged || dy != dy';
     public boolean velocityChanged;
     protected boolean E;
     private boolean aw;
@@ -704,7 +704,6 @@ public abstract class Entity implements ICommandListener {
             boolean flag = this.onGround || d1 != d8 && d1 < 0.0D; // CraftBukkit - decompile error
             double d11;
 
-
             /*if (d7 != d0 || d9 != d2)
             {
                 System.out.println("d7: " + d7 + ", d0: " + d0 + ", d9: " + d9 + ", d2: " + d2);
@@ -719,7 +718,11 @@ public abstract class Entity implements ICommandListener {
                 this.a(axisalignedbb);
                 d1 = (double) this.P;
                 List list1 = this.world.getCubes(this, this.getBoundingBox().b(d7, d1, d9));
+
+                /////
+
                 AxisAlignedBB axisalignedbb2 = this.getBoundingBox();
+
                 AxisAlignedBB axisalignedbb3 = axisalignedbb2.b(d7, 0.0D, d9);
 
                 d11 = d1;
@@ -730,6 +733,7 @@ public abstract class Entity implements ICommandListener {
                 }
 
                 axisalignedbb2 = axisalignedbb2.d(0.0D, d11, 0.0D);
+
                 double d15 = d7;
                 int k1 = 0;
 
@@ -738,6 +742,7 @@ public abstract class Entity implements ICommandListener {
                 }
 
                 axisalignedbb2 = axisalignedbb2.d(d15, 0.0D, 0.0D);
+
                 double d16 = d9;
                 int i2 = 0;
 
@@ -746,15 +751,20 @@ public abstract class Entity implements ICommandListener {
                 }
 
                 axisalignedbb2 = axisalignedbb2.d(0.0D, 0.0D, d16);
+
+
+                /////  axisalignedbb4
                 AxisAlignedBB axisalignedbb4 = this.getBoundingBox();
+
                 double d17 = d1;
                 int k2 = 0;
 
                 for (int l2 = list1.size(); k2 < l2; ++k2) {
-                    d17 = ((AxisAlignedBB) list1.get(k2)).b(axisalignedbb4, d17);
+                    d17 = ((AxisAlignedBB) list1.get(k2)).b(axisalignedbb4, d17);  //
                 }
 
                 axisalignedbb4 = axisalignedbb4.d(0.0D, d17, 0.0D);
+
                 double d18 = d7;
                 int i3 = 0;
 
@@ -763,6 +773,7 @@ public abstract class Entity implements ICommandListener {
                 }
 
                 axisalignedbb4 = axisalignedbb4.d(d18, 0.0D, 0.0D);
+
                 double d19 = d9;
                 int k3 = 0;
 
@@ -771,6 +782,9 @@ public abstract class Entity implements ICommandListener {
                 }
 
                 axisalignedbb4 = axisalignedbb4.d(0.0D, 0.0D, d19);
+
+                //////
+
                 double d20 = d15 * d15 + d16 * d16;
                 double d21 = d18 * d18 + d19 * d19;
 
@@ -789,7 +803,7 @@ public abstract class Entity implements ICommandListener {
                 int i4 = 0;
 
                 for (int j4 = list1.size(); i4 < j4; ++i4) {
-                    d1 = ((AxisAlignedBB) list1.get(i4)).b(this.getBoundingBox(), d1);
+                    d1 = ((AxisAlignedBB) list1.get(i4)).b(this.getBoundingBox(), d1);  //
                 }
 
                 this.a(this.getBoundingBox().d(0.0D, d1, 0.0D));
@@ -804,7 +818,6 @@ public abstract class Entity implements ICommandListener {
             this.world.methodProfiler.b();
             this.world.methodProfiler.a("rest");
             this.recalcPosition();
-
 
             this.positionChanged = d7 != d0 || d9 != d2;
             this.B = d1 != d8; // CraftBukkit - decompile error

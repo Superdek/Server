@@ -1,5 +1,4 @@
-﻿using System;
-
+﻿
 namespace Containers
 {
     public interface IReadOnlyQueue<T>
@@ -7,7 +6,7 @@ namespace Containers
         public System.Collections.Generic.IEnumerable<T> GetValues();
     }
 
-    public class Queue<T> : System.IDisposable, IReadOnlyQueue<T>
+    public sealed class Queue<T> : System.IDisposable, IReadOnlyQueue<T>
     {
         private class Node(T value)
         {
@@ -39,7 +38,7 @@ namespace Containers
 
         ~Queue() => System.Diagnostics.Debug.Assert(false);
 
-        public virtual void Enqueue(T value)
+        public void Enqueue(T value)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -64,12 +63,14 @@ namespace Containers
             _count++;
         }
 
-        public virtual T Dequeue()
+        public T Dequeue()
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
             if (_count == 0)
-                throw new EmptyQueueException();
+            {
+                System.Diagnostics.Debug.Assert(false);
+            }
 
             System.Diagnostics.Debug.Assert(_inNode != null);
             System.Diagnostics.Debug.Assert(_outNode != null);
@@ -90,12 +91,14 @@ namespace Containers
             return value;
         }
 
-        public virtual T[] Flush()
+        public T[] Flush()
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
             if (_count == 0)
+            {
                 return [];
+            }
 
             System.Diagnostics.Debug.Assert(_inNode != null);
             System.Diagnostics.Debug.Assert(_outNode != null);
@@ -119,12 +122,14 @@ namespace Containers
             return values;
         }
 
-        public virtual System.Collections.Generic.IEnumerable<T> GetValues()
+        public System.Collections.Generic.IEnumerable<T> GetValues()
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
             if (_count == 0)
+            {
                 yield break;
+            }
 
             System.Diagnostics.Debug.Assert(_inNode != null);
             System.Diagnostics.Debug.Assert(_outNode != null);
@@ -135,108 +140,25 @@ namespace Containers
                 System.Diagnostics.Debug.Assert(current != null);
 
                 yield return current.Value;
+
                 current = current.NextNode;
             } while (current != null);
 
         }
 
-        protected virtual void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (_disposed) return;
+            // Assertions.
+            System.Diagnostics.Debug.Assert(!_disposed);
 
-            if (disposing == true)
-            {
-                // Release managed resources.
-                _outNode = _inNode = null;
-            }
+            // Release resources.
+            _outNode = _inNode = null;
 
-            // Release unmanaged resources.
-
+            // Finish.
+            System.GC.SuppressFinalize(this);
             _disposed = true;
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-            System.GC.SuppressFinalize(this);
-        }
-
     }
 
-    // TODO: Make concurrency mechanisms using rwmutex.
-    public sealed class ConcurrentQueue<T> : Queue<T>
-        where T : class
-    {
-        private readonly object _SharedResource = new();
-
-        private bool _disposed = false;
-
-        public ConcurrentQueue() { }
-
-        ~ConcurrentQueue() => Dispose(false);
-
-        public override void Enqueue(T value)
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            lock (_SharedResource)
-            {
-                base.Enqueue(value);
-            }
-        }
-
-        public new T? Dequeue()
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            lock (_SharedResource)
-            {
-                if (Empty)
-                {
-                    return null;
-                }
-
-                return base.Dequeue();
-            }
-        }
-
-        public override T[] Flush()
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            lock (_SharedResource)
-            {
-                return base.Flush();
-            }
-        }
-
-        public override System.Collections.Generic.IEnumerable<T> GetValues()
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-
-            lock (_SharedResource)
-            {
-                return base.GetValues();
-            }
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing == true)
-                {
-                    // Release managed resources.
-                }
-
-                // Release unmanaged resources.
-
-                _disposed = true;
-            }
-
-            base.Dispose(disposing);
-        }
-
-    }
 }

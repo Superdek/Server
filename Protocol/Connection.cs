@@ -1,8 +1,5 @@
-﻿
+
 using Containers;
-using System;
-using System.Numerics;
-using System.Reflection;
 
 namespace Protocol
 {
@@ -16,25 +13,21 @@ namespace Protocol
             private const int _MAX_LOAD_COUNT = 7;
             private const int _MAX_SEARCH_COUNT = 103;
 
-            private readonly Set<Chunk.Vector> _LOADED_CHUNKS = new();  // Disposable
+            private readonly Set<ChunkLocation> _LOADED_CHUNKS = new();  // Disposable
 
-            private Chunk.Grid? _grid;
-            private Chunk.Vector _c;
+            private ChunkGrid? _grid;
+            private ChunkLocation _c;
             private int _d = - 1;
 
             private int _x, _z, _layer, _n;
 
-            public LoadingHelper()
-            {
-
-            }
+            public LoadingHelper() { }
 
             ~LoadingHelper() => System.Diagnostics.Debug.Assert(false);
 
             public void Load(
-                Queue<Chunk.Vector> newChunks,
-                Queue<Chunk.Vector> outOfRangeChunks, 
-                Chunk.Vector c, int d)
+                Queue<ChunkLocation> newChunks, Queue<ChunkLocation> outOfRangeChunks, 
+                ChunkLocation locCenter, int d)
             {
                 System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -42,16 +35,16 @@ namespace Protocol
                 System.Diagnostics.Debug.Assert(_MAX_LOAD_COUNT > 0);
                 System.Diagnostics.Debug.Assert(_MAX_SEARCH_COUNT >= _MAX_LOAD_COUNT);
 
-                if (!c.Equals(_c) || (d != _d))
+                if (!locCenter.Equals(_c) || (d != _d))
                 {
-                    Chunk.Grid grid = Chunk.Grid.Generate(c, d);
+                    ChunkGrid grid = ChunkGrid.Generate(locCenter, d);
                     
                     if (_grid != null)
                     {
                         System.Diagnostics.Debug.Assert(!_grid.Equals(grid));
 
                         // TODO: Refactoring without brute-force approch.
-                        foreach (Chunk.Vector p in _grid.GetVectors())
+                        foreach (ChunkLocation p in _grid.GetLocations())
                         {
                             if (grid.Contains(p))
                             {
@@ -68,7 +61,7 @@ namespace Protocol
                     
                     _grid = grid;
                     _d = d;
-                    _c = c;
+                    _c = locCenter;
 
                     _layer = 0;
                     _n = 0;
@@ -84,7 +77,7 @@ namespace Protocol
                     int i = 0, j = 0;
 
                     int w;
-                    Chunk.Vector p;
+                    ChunkLocation p;
 
                     do
                     {
@@ -94,7 +87,7 @@ namespace Protocol
 
                         if (_layer == 0)
                         {
-                            p = c;
+                            p = locCenter;
                         }
                         else
                         {
@@ -136,7 +129,7 @@ namespace Protocol
                             ++_layer;
                             _n = 0;
 
-                            _x = c.X + _layer; _z = c.Z + _layer;
+                            _x = locCenter.X + _layer; _z = locCenter.Z + _layer;
                         }
 
                         if (_layer > d)
@@ -157,42 +150,35 @@ namespace Protocol
 
             }
 
-            private void Dispose(bool disposing)
-            {
-                System.Diagnostics.Debug.Assert(!_disposed);
-
-                // Assertion
-
-                if (disposing == true)
-                {
-                    // managed objects
-                    _LOADED_CHUNKS.Dispose();
-
-                }
-
-                // unmanaged objects
-
-                _disposed = true;
-            }
-
             public void Dispose()
             {
-                Dispose(true);
+                // Assertions.
+                System.Diagnostics.Debug.Assert(!_disposed);
+
+                // Release resources.
+                _LOADED_CHUNKS.Dispose();
+
+                // Finish.
                 System.GC.SuppressFinalize(this);
+                _disposed = true;
             }
 
         }
 
         private sealed class TeleportationRecord
         {
-            private const long TickLimit = 20;  // 1 seconds, 20 ticks
+            private const long _MAX_TICKS = 20;  // 1 seconds, 20 ticks
 
             public readonly int _payload;
             private long _ticks = 0;
 
-            public TeleportationRecord(int payload)
+            private readonly Vector _p;
+            public Vector Position => _p;
+
+            public TeleportationRecord(int payload, Vector p)
             {
                 _payload = payload;
+                _p = p;
             }
 
             public void Confirm(int payload)
@@ -205,7 +191,7 @@ namespace Protocol
             {
                 System.Diagnostics.Debug.Assert(_ticks >= 0);
 
-                if (_ticks++ > TickLimit)
+                if (_ticks++ > _MAX_TICKS)
                 {
                     throw new TeleportationConfirmTimeoutException();
                 }
@@ -247,39 +233,44 @@ namespace Protocol
 
         private bool _disposed = false;
 
-        private readonly int Id;
-
         private readonly Client _CLIENT;  // Dispoasble
 
-
-        /*private int _initLevel = 0;
-        private bool IsInit => _initLevel >= 3;*/
         private bool _init = false;
+
+        private bool _disconnected = false;
 
         private readonly Queue<LoadChunkPacket> _LOAD_CHUNK_PACKETS = new();  // Dispoasble
         private readonly Queue<ClientboundPlayingPacket> _OUT_PACKETS = new();  // Dispoasble
 
         private const int _MAX_ENTITY_RENDER_DISTANCE = 7;
         private const int _MIN_RENDER_DISTANCE = 2, _MAX_RENDER_DISTANCE = 32;
-        private int _renderDistance = _MIN_RENDER_DISTANCE;
+        private int _dEntityRendering = _MIN_RENDER_DISTANCE;
+        private int _dChunkRendering = _MIN_RENDER_DISTANCE;
 
-        private readonly LoadingHelper _LOADING_HELPER = new();
-        private readonly Table<int, EntityRenderer> _ENTITY_TO_RENDERERS = new();  // Disposable
+        private readonly EntityRenderer _ENTITY_RENDERER;
+        private readonly SelfPlayerRenderer _SELF_RENDERER;
 
-        private readonly SelfPlayerRenderer _SELF_RENDERER;  // Disposable
-
+        private readonly LoadingHelper _LOADING_HELPER = new();  // Dispoasble
         private readonly Queue<TeleportationRecord> _TELEPORTATION_RECORDS = new();  // Dispoasble
         private KeepAliveRecord? _keepAliveRecord = null;
 
-        private Window? _window = null;  // disposable
+        private Window _window;  // disposable
 
-        internal Connection(Client client)
+        internal Connection(World world, Player player, Client client)
         {
-            Id = client.LocalPort;
+            System.Diagnostics.Debug.Assert(_MAX_ENTITY_RENDER_DISTANCE >= _MIN_RENDER_DISTANCE);
+            System.Diagnostics.Debug.Assert(_MAX_RENDER_DISTANCE >= _MAX_ENTITY_RENDER_DISTANCE);
 
             _CLIENT = client;
 
             _SELF_RENDERER = new(_OUT_PACKETS, client);
+
+            using Buffer buffer = new();
+
+            _window = new Window(_OUT_PACKETS, player._selfInventory);
+
+            ChunkLocation loc = ChunkLocation.Generate(player.Position);
+            _ENTITY_RENDERER = new EntityRenderer(player.Id, _OUT_PACKETS, loc, _dEntityRendering);
         }
 
         ~Connection() => System.Diagnostics.Debug.Assert(false);
@@ -355,6 +346,11 @@ namespace Protocol
         private void RecvDataAndHandle(
             Buffer buffer, long serverTicks, World world, Player player)
         {
+            if (_disconnected)
+            {
+                throw new DisconnectedClientException();
+            }
+
             _CLIENT.Recv(buffer);
 
             int packetId = buffer.ReadInt(true);
@@ -376,26 +372,27 @@ namespace Protocol
 
                         TeleportationRecord record = _TELEPORTATION_RECORDS.Dequeue();
                         record.Confirm(packet.Payload);
+
+                        Vector p = new(record.Position.X, record.Position.Y, record.Position.Z);
+                        ChunkLocation locChunk = ChunkLocation.Generate(p);
+                        _ENTITY_RENDERER.Update(locChunk);
                     }
                     break;
                 case ServerboundPlayingPacket.SetClientSettingsPacketId:
                     {
                         SetClientSettingsPacket packet = SetClientSettingsPacket.Read(buffer);
 
-                        if (_renderDistance != packet.RenderDistance)
+                        int d = packet.RenderDistance;
+                        
+                        if (d < _MIN_RENDER_DISTANCE || d > _MAX_RENDER_DISTANCE)
                         {
-                            _renderDistance = packet.RenderDistance;
-                            if (_renderDistance < _MIN_RENDER_DISTANCE || _renderDistance > _MAX_RENDER_DISTANCE)
-                            {
-                                throw new UnexpectedValueException("SetClientSettingsPacket.RenderDistance");
-                            }
-
-                            int entityRenderDistance = System.Math.Min(_renderDistance, _MAX_ENTITY_RENDER_DISTANCE);
-                            foreach (var renderer in _ENTITY_TO_RENDERERS.GetValues())
-                            {
-                                renderer.Update(entityRenderDistance);
-                            }
+                            throw new UnexpectedValueException("SetClientSettingsPacket.RenderDistance");
                         }
+
+                        _dChunkRendering = d;
+                        _dEntityRendering = System.Math.Min(d, _MAX_ENTITY_RENDER_DISTANCE);
+
+                        _ENTITY_RENDERER.Update(_dEntityRendering);
                     }
                     break;
                 case ServerboundPlayingPacket.ServerboundConfirmTransactionPacketId:
@@ -526,7 +523,7 @@ namespace Protocol
                         _keepAliveRecord.Confirm(packet.Payload);
                         _keepAliveRecord = null;
 
-                        world.KeepAlivePlayer(serverTicks, player.UniqueId);
+                        world.KeepAlivePlayer(serverTicks, player);
 
                     }
                     break;
@@ -547,14 +544,11 @@ namespace Protocol
                 
                         if (_TELEPORTATION_RECORDS.Empty)
                         {
-                            Entity.Vector p = new(packet.X, packet.Y, packet.Z);
+                            Vector p = new(packet.X, packet.Y, packet.Z);
                             player.Control(p, packet.OnGround);
 
-                            Chunk.Vector pChunk = Chunk.Vector.Convert(p);
-                            foreach (var renderer in _ENTITY_TO_RENDERERS.GetValues())
-                            {
-                                renderer.Update(pChunk);
-                            }
+                            ChunkLocation locChunk = ChunkLocation.Generate(p);
+                            _ENTITY_RENDERER.Update(locChunk);
                         }
 
                     }
@@ -565,14 +559,11 @@ namespace Protocol
 
                         if (_TELEPORTATION_RECORDS.Empty)
                         {
-                            Entity.Vector p = new(packet.X, packet.Y, packet.Z);
+                            Vector p = new(packet.X, packet.Y, packet.Z);
                             player.Control(p, packet.OnGround);
 
-                            Chunk.Vector pChunk = Chunk.Vector.Convert(p);
-                            foreach (var renderer in _ENTITY_TO_RENDERERS.GetValues())
-                            {
-                                renderer.Update(pChunk);
-                            }
+                            ChunkLocation locChunk = ChunkLocation.Generate(p);
+                            _ENTITY_RENDERER.Update(locChunk);
                         }
 
                         player.Rotate(new(packet.Yaw, packet.Pitch));
@@ -602,7 +593,7 @@ namespace Protocol
                                 /*System.Console.Write("Seanking!");*/
                                 if (player.IsSneaking)
                                 {
-                                    throw new UnexpectedValueException("Entity.Sneaking");
+                                    throw new UnexpectedValueException("EntityActionPacket.ActionId");
                                 }
 
                                 player.Sneak();
@@ -611,7 +602,7 @@ namespace Protocol
                                 /*System.Console.Write("Unseanking!");*/
                                 if (!player.IsSneaking)
                                 {
-                                    throw new UnexpectedValueException("Entity.Sneaking");
+                                    throw new UnexpectedValueException("EntityActionPacket.ActionId");
                                 }
 
                                 player.Unsneak();
@@ -619,7 +610,7 @@ namespace Protocol
                             case 3:
                                 if (player.IsSprinting)
                                 {
-                                    throw new UnexpectedValueException("Entity.Sprinting");
+                                    throw new UnexpectedValueException("EntityActionPacket.ActionId");
                                 }
 
                                 player.Sprint();
@@ -627,7 +618,7 @@ namespace Protocol
                             case 4:
                                 if (!player.IsSprinting)
                                 {
-                                    throw new UnexpectedValueException("Entity.Sprinting");
+                                    throw new UnexpectedValueException("EntityActionPacket.ActionId");
                                 }
 
                                 player.Unsprint();
@@ -636,21 +627,15 @@ namespace Protocol
 
                         if (packet.JumpBoost > 0)
                         {
-                            throw new UnexpectedValueException("EntityAction.JumpBoost");
+                            throw new UnexpectedValueException("EntityActionPacket.JumpBoost");
                         }
 
                     }
                     break;
             }
 
-            if (!buffer.Empty)
-                throw new BufferOverflowException();
         }
 
-        /// <summary>
-        /// TODO: Add description.
-        /// </summary>
-        /// <returns>TODO: Add description.</returns>
         /// <exception cref="DisconnectedClientException">TODO: Why it's thrown.</exception>
         public void Control(
             long serverTicks, World world, Player player)
@@ -677,14 +662,27 @@ namespace Protocol
             {
                 try
                 {
-                    while (true)
+                    try
                     {
-                        RecvDataAndHandle(buffer, serverTicks, world, player);
+                        while (true)
+                        {
+                            RecvDataAndHandle(buffer, serverTicks, world, player);
+                        }
                     }
-                }
-                catch (TryAgainException)
-                {
+                    catch (TryAgainException)
+                    {
 
+                    }
+
+                    foreach (TeleportationRecord record in _TELEPORTATION_RECORDS.GetValues())
+                    {
+                        record.Update();
+                    }
+
+                    if (_keepAliveRecord != null)
+                    {
+                        _keepAliveRecord.Update();
+                    }
                 }
                 catch (UnexpectedClientBehaviorExecption e)
                 {
@@ -694,30 +692,19 @@ namespace Protocol
 
                     throw new DisconnectedClientException();
                 }
-
-                if (_renderDistance == -1)
-                {
-                    throw new UnexpectedPacketException();
-                }
-
-                foreach (TeleportationRecord record in _TELEPORTATION_RECORDS.GetValues())
-                {
-                    record.Update();
-                }
-
-                if (_keepAliveRecord != null)
-                {
-                    _keepAliveRecord.Update();
-                }
+                
             }
             catch (DisconnectedClientException)
             {
                 buffer.Flush();
+
                 world.DisconnectPlayer(player);
+                player.Disconnect();
+
+                _disconnected = true;
 
                 throw;
             }
-
             
         }
 
@@ -725,133 +712,57 @@ namespace Protocol
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
-            System.Diagnostics.Debug.Assert(_renderDistance >= _MIN_RENDER_DISTANCE);
-            System.Diagnostics.Debug.Assert(_renderDistance <= _MAX_RENDER_DISTANCE);
+            System.Diagnostics.Debug.Assert(_dChunkRendering >= _MIN_RENDER_DISTANCE);
+            System.Diagnostics.Debug.Assert(_dChunkRendering <= _MAX_RENDER_DISTANCE);
+            System.Diagnostics.Debug.Assert(_dEntityRendering >= _MIN_RENDER_DISTANCE);
+            System.Diagnostics.Debug.Assert(_dEntityRendering <= _MAX_ENTITY_RENDER_DISTANCE);
 
-            Chunk.Vector c = Chunk.Vector.Convert(player.Position);
-            /*System.Console.WriteLine($"c: {c}");*/
+            ChunkLocation locCenter = ChunkLocation.Generate(player.Position);
 
+            ChunkGrid grid = ChunkGrid.Generate(locCenter, _dEntityRendering);
+            foreach (ChunkLocation loc in grid.GetLocations())
             {
-                int renderDistance = System.Math.Min(_renderDistance, _MAX_ENTITY_RENDER_DISTANCE);
-
-                using Queue<Entity> newEntities = new();
-
-                Chunk.Grid grid = Chunk.Grid.Generate(c, renderDistance);
-                foreach (Chunk.Vector p in grid.GetVectors())
+                foreach (Entity entity in world.GetEntities(loc))
                 {
-                    if (world.ContainsEntities(p))
+                    if (entity.Id == player.Id)
                     {
-                        foreach (Entity entity in world.GetEntities(p))
-                        {
-                            if (entity.Id == player.Id) continue;
-
-                            if (_ENTITY_TO_RENDERERS.Contains(entity.Id)) continue;
-
-                            newEntities.Enqueue(entity);
-
-                            EntityRenderer renderer = entity.ApplyForRenderer(
-                                _OUT_PACKETS, c, renderDistance);
-
-                            _ENTITY_TO_RENDERERS.Insert(entity.Id, renderer);
-
-                        }
+                        continue;
                     }
+
+                    entity.ApplyRenderer(_OUT_PACKETS, _ENTITY_RENDERER);
                 }
-
-                while (!newEntities.Empty)
-                {
-                    Entity entity = newEntities.Dequeue();
-                    System.Diagnostics.Debug.Assert(entity.Id != player.Id);
-
-                    switch (entity)
-                    {
-                        default:
-                            throw new System.NotImplementedException();
-                        case Player spawnedPlayer:
-                            {
-                                byte flags = 0x00;
-
-                                if (spawnedPlayer.IsSneaking)
-                                    flags |= 0x02;
-                                if (spawnedPlayer.IsSprinting)
-                                    flags |= 0x08;
-
-                                using EntityMetadata metadata = new();
-                                metadata.AddByte(0, flags);
-
-                                (byte x, byte y) = spawnedPlayer.Look.ConvertToPacketFormat();
-                                _OUT_PACKETS.Enqueue(new SpawnNamedEntityPacket(
-                                    spawnedPlayer.Id,
-                                    spawnedPlayer.UniqueId,
-                                    spawnedPlayer.Position.X, spawnedPlayer.Position.Y, spawnedPlayer.Position.Z,
-                                    x, y,
-                                    metadata.WriteData()));
-                            }
-                            break;
-                        case ItemEntity itemEntity:
-                            {
-                                (byte x, byte y) = itemEntity.Look.ConvertToPacketFormat();
-                                _OUT_PACKETS.Enqueue(new SpawnObjectPacket(
-                                    itemEntity.Id, itemEntity.UniqueId,
-                                    2,
-                                    itemEntity.Position.X, itemEntity.Position.Y, itemEntity.Position.Z,
-                                    x, y,
-                                    1,
-                                    0, 0, 0));
-
-                                using EntityMetadata metadata = new();
-                                metadata.AddBool(5, true);
-                                metadata.AddSlotData(6, new SlotData(280, 1));
-                                _OUT_PACKETS.Enqueue(new EntityMetadataPacket(
-                                    itemEntity.Id, metadata.WriteData()));
-                            }
-                            break;
-                    }
-                }
-
             }
 
+            using Queue<ChunkLocation> newChunkPositions = new();
+            using Queue<ChunkLocation> outOfRangeChunks = new();
+
+            _LOADING_HELPER.Load(newChunkPositions, outOfRangeChunks, locCenter, _dChunkRendering);
+
+            int mask; byte[] data;
+            while (!newChunkPositions.Empty)
             {
-                using Queue<Chunk.Vector> newChunkPositions = new();
-                using Queue<Chunk.Vector> outOfRangeChunks = new();
+                ChunkLocation locChunk = newChunkPositions.Dequeue();
 
-                _LOADING_HELPER.Load(newChunkPositions, outOfRangeChunks, c, _renderDistance);
+                (mask, data) = world.GetChunkData(locChunk);
 
-                int mask; byte[] data;
-                while (!newChunkPositions.Empty)
-                {
-                    Chunk.Vector p = newChunkPositions.Dequeue();
+                _LOAD_CHUNK_PACKETS.Enqueue(new LoadChunkPacket(
+                    locChunk.X, locChunk.Z, true, mask, data));
+            }
 
-                    if (world.ContainsChunk(p))
-                    {
-                        Chunk chunk = world.GetChunk(p);
-                        (mask, data) = Chunk.Write(chunk);
-                    }
-                    else
-                    {
-                        (mask, data) = Chunk.Write();
-                    }
+            while (!outOfRangeChunks.Empty)
+            {
+                ChunkLocation p = outOfRangeChunks.Dequeue();
 
-                    _LOAD_CHUNK_PACKETS.Enqueue(new LoadChunkPacket(p.X, p.Z, true, mask, data));
-                }
-
-                while (!outOfRangeChunks.Empty)
-                {
-                    Chunk.Vector p = outOfRangeChunks.Dequeue();
-
-                    _OUT_PACKETS.Enqueue(new UnloadChunkPacket(p.X, p.Z));
-                }
+                _OUT_PACKETS.Enqueue(new UnloadChunkPacket(p.X, p.Z));
             }
 
         }
-
-        /// <summary>
-        /// TODO: Add description.
-        /// </summary>
-        /// <exception cref="DisconnectedClientException">TODO: Why it's thrown.</exception>
+        
         public void Render(World world, Player player)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
+
+            System.Diagnostics.Debug.Assert(!_disconnected);
 
             using Buffer buffer = new();
 
@@ -859,19 +770,6 @@ namespace Protocol
             {
                 if (!_init)
                 {
-                    /*try
-                    {
-                        StartInitProcess(buffer, world, player);
-                    }
-                    catch (UnexpectedClientBehaviorExecption e)
-                    {
-                        // TODO: send disconnected message to client.
-
-                        System.Console.WriteLine(e.Message);
-
-                        throw new DisconnectedClientException();
-                    }*/
-
                     JoinGamePacket packet = new(player.Id, 0, 0, 0, "default", false);
                     packet.Write(buffer);
                     _CLIENT.Send(buffer);
@@ -879,13 +777,8 @@ namespace Protocol
                     world.ConnectPlayer(player, _OUT_PACKETS);
                     player.Connect(_SELF_RENDERER);
 
-                    System.Diagnostics.Debug.Assert(_window == null);
-                    _window = new(_OUT_PACKETS, player._selfInventory);
-
                     _init = true;
                 }
-
-                System.Diagnostics.Debug.Assert(_init);
 
                 LoadWorld(world, player);
 
@@ -905,15 +798,10 @@ namespace Protocol
 
                     if (packet is TeleportSelfPlayerPacket teleportPacket)
                     {
-                        TeleportationRecord report = new(teleportPacket.Payload);
-                        _TELEPORTATION_RECORDS.Enqueue(report);
+                        Vector p = new(teleportPacket.X, teleportPacket.Y, teleportPacket.Z);
 
-                        Entity.Vector p = new(teleportPacket.X, teleportPacket.Y, teleportPacket.Z);
-                        Chunk.Vector pChunk = Chunk.Vector.Convert(p);
-                        foreach (var renderer in _ENTITY_TO_RENDERERS.GetValues())
-                        {
-                            renderer.Update(pChunk);
-                        }
+                        TeleportationRecord report = new(teleportPacket.Payload, p);
+                        _TELEPORTATION_RECORDS.Enqueue(report);
                     }
                     else if (packet is ClientboundCloseWindowPacket)
                     {
@@ -924,16 +812,16 @@ namespace Protocol
                     {
                         // TODO: save payload and check when recived.
                         System.Diagnostics.Debug.Assert(_keepAliveRecord == null);
-                        _keepAliveRecord = new(requestKeepAlivePacket.Payload);
+                        _keepAliveRecord = new KeepAliveRecord(requestKeepAlivePacket.Payload);
                     }
-                    else if (packet is DestroyEntitiesPacket destroyEntitiesPacket)
+                    /*else if (packet is DestroyEntitiesPacket destroyEntitiesPacket)
                     {
                         int[] entityIds = destroyEntitiesPacket.EntityIds;
                         foreach (int id in entityIds)
                         {
                             _ENTITY_TO_RENDERERS.Extract(id);
                         }
-                    }
+                    }*/
 
                     packet.Write(buffer);
                     _CLIENT.Send(buffer);
@@ -946,65 +834,41 @@ namespace Protocol
             catch (DisconnectedClientException)
             {
                 buffer.Flush();
-                world.DisconnectPlayer(player);
 
-                throw;
+                _disconnected = true;
             }
+
         }
 
         public void Flush(World world)
         {
-            foreach (ClientboundPlayingPacket packet in _OUT_PACKETS.Flush())
-            {
-                if (packet is DestroyEntitiesPacket destroyEntitiesPacket)
-                {
-                    foreach (int entityId in destroyEntitiesPacket.EntityIds)
-                    {
-                        _ENTITY_TO_RENDERERS.Extract(entityId);
-                    }
-                }
-            }
+            System.Diagnostics.Debug.Assert(!_disposed);
+            System.Diagnostics.Debug.Assert(_disconnected);
 
-            foreach ((int entityId, var renderer) in _ENTITY_TO_RENDERERS.Flush())
-            {
-                renderer.Disconnect();
-            }
+            _ENTITY_RENDERER.Disconnect();
 
-            if (_window != null)
-            {
-                _window.Flush(world);
-            }
+            _window.Flush(world);
         }
 
         public void Dispose()
         {
+            // Assertions.
             System.Diagnostics.Debug.Assert(!_disposed);
+            System.Diagnostics.Debug.Assert(_disconnected);
 
-            // Assertion
-            System.Diagnostics.Debug.Assert(_OUT_PACKETS.Empty);
-
-            System.Diagnostics.Debug.Assert(_ENTITY_TO_RENDERERS.Empty);
-
-            // Release Resources
+            // Release Resources.
             _CLIENT.Dispose();
 
             _LOAD_CHUNK_PACKETS.Dispose();
             _OUT_PACKETS.Dispose();
 
             _LOADING_HELPER.Dispose();
-            _ENTITY_TO_RENDERERS.Dispose();
-
-            _SELF_RENDERER.Dispose();
-
             _TELEPORTATION_RECORDS.Dispose();
             _keepAliveRecord = null;
 
-            if (_window != null)
-            {
-                _window.Dispose();
-                _window = null;
-            }
+            _window.Dispose();
 
+            // Finish.
             System.GC.SuppressFinalize(this);
             _disposed = true;
         }

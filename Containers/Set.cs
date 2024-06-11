@@ -10,7 +10,7 @@ namespace Containers
 
     }
 
-    public class Set<K> : System.IDisposable, IReadOnlySet<K>
+    public sealed class Set<K> : System.IDisposable, IReadOnlySet<K>
         where K : struct, System.IEquatable<K>
     {
         private bool _disposed = false;
@@ -94,7 +94,7 @@ namespace Containers
 
         }
 
-        public virtual void Insert(K key)
+        public void Insert(K key)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -111,7 +111,9 @@ namespace Containers
                 if (_flags[index])
                 {
                     if (_keys[index].Equals(key))
-                        throw new DuplicateKeyException();
+                    {
+                        System.Diagnostics.Debug.Assert(false);
+                    }
 
                     continue;
                 }
@@ -121,15 +123,14 @@ namespace Containers
                 _count++;
 
                 float factor = (float)_count / (float)_length;
-                if (factor < _LOAD_FACTOR)
-                    return;
+                if (factor >= _LOAD_FACTOR)
+                {
+                    Resize(_length * _EXPENSION_FACTOR);
+                }
 
-                Resize(_length * _EXPENSION_FACTOR);
-
-                return;
+                break;
             }
 
-            throw new System.NotImplementedException();
         }
 
         private bool CanShift(int targetIndex, int currentIndex, int originIndex)
@@ -140,7 +141,7 @@ namespace Containers
                 (originIndex == targetIndex);
         }
 
-        public virtual void Extract(K key)
+        public void Extract(K key)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -150,7 +151,9 @@ namespace Containers
             System.Diagnostics.Debug.Assert(_count >= 0);
 
             if (_count == 0)
-                throw new NotFoundException();
+            {
+                System.Diagnostics.Debug.Assert(false);
+            }
 
             int targetIndex = -1, nextI = -1;
             int hash = Hash(key);
@@ -159,10 +162,14 @@ namespace Containers
                 int index = (hash + i) % _length;
 
                 if (!_flags[index])
-                    throw new NotFoundException();
+                {
+                    System.Diagnostics.Debug.Assert(false);
+                }
 
                 if (!_keys[index].Equals(key))
+                {
                     continue;
+                }
 
                 _count--;
 
@@ -191,12 +198,17 @@ namespace Containers
             {
                 int index = (hash + i) % _length;
 
-                if (!_flags[index]) break;
+                if (!_flags[index])
+                {
+                    break;
+                }
 
                 K shiftedKey = _keys[index];
                 int originIndex = Hash(shiftedKey) % _length;
                 if (!CanShift(targetIndex, index, originIndex))
+                {
                     continue;
+                }
 
                 _keys[targetIndex] = shiftedKey;
 
@@ -208,7 +220,7 @@ namespace Containers
             return;
         }
 
-        public virtual bool Contains(K key)
+        public bool Contains(K key)
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -217,7 +229,9 @@ namespace Containers
             System.Diagnostics.Debug.Assert(_length >= _MIN_LENGTH);
             System.Diagnostics.Debug.Assert(_count >= 0);
             if (_count == 0)
+            {
                 return false;
+            }
 
             int hash = Hash(key);
             for (int i = 0; i < _length; ++i)
@@ -225,10 +239,14 @@ namespace Containers
                 int index = (hash + i) % _length;
 
                 if (!_flags[index])
+                {
                     return false;
+                }
 
                 if (!_keys[index].Equals(key))
+                {
                     continue;
+                }
 
                 return true;
             }
@@ -246,7 +264,7 @@ namespace Containers
             _count = 0;
         }
 
-        public virtual K[] Flush()
+        public K[] Flush()
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -256,18 +274,26 @@ namespace Containers
             System.Diagnostics.Debug.Assert(_count >= 0);
 
             if (_count == 0)
+            {
                 return [];
+            }
 
             var keys = new K[_count];
 
             int i = 0;
             for (int j = 0; j < _length; ++j)
             {
-                if (!_flags[j]) continue;
+                if (!_flags[j])
+                {
+                    continue;
+                }
 
                 keys[i++] = _keys[j];
 
-                if (i == _count) break;
+                if (i == _count)
+                {
+                    break;
+                }
             }
 
             _flags = new bool[_MIN_LENGTH];
@@ -278,7 +304,7 @@ namespace Containers
             return keys;
         }
 
-        public virtual System.Collections.Generic.IEnumerable<K> GetKeys()
+        public System.Collections.Generic.IEnumerable<K> GetKeys()
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -302,26 +328,18 @@ namespace Containers
 
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (_disposed) return;
-
-            if (disposing == true)
-            {
-                // Release managed resources.
-                _flags = null;
-                _keys = null;
-            }
-
-            // Release unmanaged resources.
-
-            _disposed = true;
-        }
-
         public void Dispose()
         {
-            Dispose(true);
+            // Assertions.
+            System.Diagnostics.Debug.Assert(!_disposed);
+
+            // Release reousrces.
+            _flags = null;
+            _keys = null;
+
+            // Finish.
             System.GC.SuppressFinalize(this);
+            _disposed = true;
         }
 
     }

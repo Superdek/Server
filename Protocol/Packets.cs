@@ -445,15 +445,12 @@ namespace Protocol
         public readonly int OnlinePlayers;
         public readonly string Description;
 
-        /// <summary>
-        /// TODO: Add description.
-        /// </summary>
         /// <exception cref="UnexpectedDataException">TODO: Why it's thrown.</exception>
         internal static ResponsePacket Read(Buffer buffer)
         {
             /*string jsonString = buffer.ReadString();*/
             // TODO
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public ResponsePacket(int maxPlayers, int onlinePlayers, string description)
@@ -578,17 +575,17 @@ namespace Protocol
         /// <exception cref="UnexpectedDataException">TODO: Why it's thrown.</exception>
         internal static EncryptionRequestPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         private EncryptionRequestPacket() : base(EncryptionRequestPacketId)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -685,18 +682,18 @@ namespace Protocol
         internal static EncryptionResponsePacket Read(Buffer buffer)
         {
             // TODO: Check the conditions of variables. If not correct, throw exception.
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EncryptionResponsePacket() : base(EncryptionResponsePacketId)
         {
             // TODO: Assert variables.
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
     }
 
@@ -759,7 +756,7 @@ namespace Protocol
 
         public static SpawnNamedEntityPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public SpawnNamedEntityPacket(
@@ -792,12 +789,10 @@ namespace Protocol
         public readonly sbyte WindowId;
         public readonly short ActionNumber;
         public readonly bool Accepted;
-        private int v1;
-        private bool v2;
 
         public static ClientboundConfirmTransactionPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public ClientboundConfirmTransactionPacket(
@@ -849,7 +844,7 @@ namespace Protocol
         
         public static OpenWindowPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public OpenWindowPacket(
@@ -881,7 +876,7 @@ namespace Protocol
 
         public static SetWindowItemsPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public SetWindowItemsPacket(byte windowId, SlotData[] arr)
@@ -915,7 +910,7 @@ namespace Protocol
 
         public static SetSlotPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public SetSlotPacket(sbyte windowId, short slotNumber, SlotData data) 
@@ -945,7 +940,7 @@ namespace Protocol
         /// <exception cref="UnexpectedDataException">TODO: Why it's thrown.</exception>
         internal static UnloadChunkPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public UnloadChunkPacket(int xChunk, int zChunk) : base(UnloadChunkPacketId)
@@ -968,7 +963,7 @@ namespace Protocol
 
         internal static RequestKeepAlivePacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public RequestKeepAlivePacket(long payload) : base(RequestKeepAlivePacketId)
@@ -996,7 +991,7 @@ namespace Protocol
         internal static LoadChunkPacket Read(Buffer buffer)
         {
             // TODO: Check the conditions of variables. If not correct, throw exception.
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public LoadChunkPacket(
@@ -1042,7 +1037,7 @@ namespace Protocol
         internal static JoinGamePacket Read(Buffer buffer)
         {
             // TODO: Check the conditions of variables. If not correct, throw exception.
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public JoinGamePacket(
@@ -1081,7 +1076,7 @@ namespace Protocol
 
         internal static EntityPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityPacket(int entityId) : base(EntityPacketId)
@@ -1104,7 +1099,7 @@ namespace Protocol
 
         internal static EntityRelMovePacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityRelMovePacket(
@@ -1135,7 +1130,7 @@ namespace Protocol
 
         internal static EntityLookAndRelMovePacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityLookAndRelMovePacket(
@@ -1168,7 +1163,7 @@ namespace Protocol
 
         internal static EntityLookPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityLookPacket(
@@ -1204,7 +1199,7 @@ namespace Protocol
         internal static SetPlayerAbilitiesPacket Read(Buffer buffer)
         {
             // TODO: Check the conditions of variables. If not correct, throw exception.
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public SetPlayerAbilitiesPacket(
@@ -1245,7 +1240,7 @@ namespace Protocol
 
         internal static AddPlayerListItemPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public AddPlayerListItemPacket(
@@ -1304,7 +1299,7 @@ namespace Protocol
 
         internal static RemovePlayerListItemPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public RemovePlayerListItemPacket(Guid uniqueId)
@@ -1335,7 +1330,7 @@ namespace Protocol
         internal static TeleportSelfPlayerPacket Read(Buffer buffer)
         {
             // TODO: Check the conditions of variables. If not correct, throw exception.
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public TeleportSelfPlayerPacket(
@@ -1387,10 +1382,10 @@ namespace Protocol
 
         internal static DestroyEntitiesPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
-        public DestroyEntitiesPacket(int[] entityIds) : base(DestroyEntitiesPacketId)
+        public DestroyEntitiesPacket(params int[] entityIds) : base(DestroyEntitiesPacketId)
         {
             EntityIds = entityIds;  // TODO: Copy
         }
@@ -1411,7 +1406,7 @@ namespace Protocol
 
         internal static EntityHeadLookPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityHeadLookPacket(
@@ -1436,7 +1431,7 @@ namespace Protocol
 
         internal static EntityMetadataPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityMetadataPacket(
@@ -1488,7 +1483,7 @@ namespace Protocol
 
         internal static EntityTeleportPacket Read(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         public EntityTeleportPacket(
@@ -1534,7 +1529,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1567,7 +1562,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
     }
 
@@ -1593,7 +1588,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1630,7 +1625,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1652,7 +1647,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1677,7 +1672,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1702,7 +1697,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1733,7 +1728,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1769,7 +1764,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }
@@ -1801,7 +1796,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
     }
 
@@ -1826,7 +1821,7 @@ namespace Protocol
 
         protected override void WriteData(Buffer buffer)
         {
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
     }

@@ -6,13 +6,11 @@ namespace Server
     {
         private bool _disposed = false;
 
-        private bool _gameInProgress = false;
-
-        public SuperWorld() : base(new(0, 70, 0), new(0,0)) { }
+        public SuperWorld() : base(new(0, 101, 0), new(0,0)) { }
 
         ~SuperWorld() => System.Diagnostics.Debug.Assert(false);
 
-        protected override bool DetermineNewPlayerCanJoinWorld()
+        public override bool CanJoinWorld()
         {
             System.Diagnostics.Debug.Assert(!_disposed);
 
@@ -26,28 +24,14 @@ namespace Server
             return false;
         }
 
-        protected override void StartPlayerRoutine(long serverTicks, Player player)
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            // If player is dead, spawn to the spanwpoint of their team.
-        }
-
-        protected override void StartSubRoutine(long serverTicks)
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            // check player is dead. if dead, player must be respanwed.
-        }
-
         public override void Dispose()
         {
+            // Assertions.
             System.Diagnostics.Debug.Assert(!_disposed);
-
-            // Assertion.
 
             // Release resources.
 
+            // Finish.
             base.Dispose();
             _disposed = true;
         }

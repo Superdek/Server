@@ -235,11 +235,12 @@ public abstract class EntityHuman extends EntityLiving {
         this.bI += d1 * 0.25D;
     }
 
+    // Set Human Axis Aligned Bounding Box
     protected void cT() {
         float f;
         float f1;
 
-        if (this.cP()) {
+        if (this.cP()) {  // Flying with elytra?
             f = 0.6F;
             f1 = 0.6F;
         } else if (this.isSleeping()) {
@@ -248,7 +249,7 @@ public abstract class EntityHuman extends EntityLiving {
         } else if (this.isSneaking()) {
             f = 0.6F;
             f1 = 1.65F;
-        } else {
+        } else {  // normal
             f = 0.6F;
             f1 = 1.8F;
         }

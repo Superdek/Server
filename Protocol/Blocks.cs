@@ -1,10 +1,34 @@
 ﻿
 using Common;
-using System;
 
 namespace Protocol
 {
-    public struct Block : System.IEquatable<Block>
+    public enum Blocks : int
+    {
+        Air,
+        Stone, 
+        Granite, 
+        PolishedGranite, 
+        Diorite, 
+        PolishedDiorite, 
+        Andesite, 
+        PolishedAndesite, 
+        Grass, 
+        Dirt, 
+        CoarseDirt, 
+        Podzol, 
+
+        EastBottomOakWoodStairs, 
+        WestBottomOakWoodStairs, 
+        SouthBottomOakWoodStairs, 
+        NorthBottomOakWoodStairs, 
+        EastTopOakWoodStairs, 
+        WestTopOakWoodStairs, 
+        SouthTopOakWoodStairs, 
+        NorthTopOakWoodStairs, 
+    }
+
+    /*public sealed class Block : System.IDisposable
     {
         public struct Vector : System.IEquatable<Vector>
         {
@@ -51,7 +75,8 @@ namespace Protocol
             {
                 return (X == other.X) && (Y == other.Y) && (Z == other.Z);
             }
-        }
+
+        }   
 
         public class Grid : System.IEquatable<Grid>
         {
@@ -138,6 +163,7 @@ namespace Protocol
                     p.Y <= _max.Y && p.Y >= _min.Y &&
                     p.Z <= _max.Z && p.Z >= _min.Z);
             }
+
             public System.Collections.Generic.IEnumerable<Vector> GetVectors()
             {
                 if (_max.X == _min.X && _max.Y == _min.Y && _max.Z == _min.Z)
@@ -175,9 +201,10 @@ namespace Protocol
                 System.Diagnostics.Debug.Assert(other != null);
                 return (other._max.Equals(_max) && other._min.Equals(_min));
             }
+
         }
 
-        public static Block GetBlockByGlobalPaletteId(ulong value)
+        *//*public static Block GetBlockByGlobalPaletteId(ulong value)
         {
             uint metadata = Conversions.ToUint(value) & 0b_1111;
             uint id = Conversions.ToUint(value) >> 4;
@@ -186,7 +213,7 @@ namespace Protocol
             Types type = (Types)id;
 
             return new(type, metadata);
-        }
+        }*//*
 
         public enum Types : uint
         {
@@ -195,6 +222,9 @@ namespace Protocol
             Grass            = 2,
             Dirt             = 3,
         }
+
+        private readonly Vector _P;
+        public Vector Position => _P;
 
         private readonly Types _TYPE;
         public Types Type => _TYPE;
@@ -215,22 +245,20 @@ namespace Protocol
             }
         }
 
-        public Block(Types type, uint metadata)
+
+        public Block(Vector p, Types type, uint metadata)
         {
+            _P = p;
             _TYPE = type;
             _METADATA = metadata;
         }
 
-        public Block(Types type)
+        *//*public Block(Types type)
         {
             _TYPE = type;
             _METADATA = 0;
-        }
+        }*//*
 
-        public readonly bool Equals(Block other)
-        {
-            return (_TYPE == other._TYPE) && (_METADATA == other._METADATA);
-        }
-    }
+    }*/
 
 }

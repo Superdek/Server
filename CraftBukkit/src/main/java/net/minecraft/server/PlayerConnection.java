@@ -2025,7 +2025,6 @@ public class PlayerConnection implements PacketListenerPlayIn, ITickable {
         if (oshort != null && packetplayintransaction.b() == oshort.shortValue() && this.player.activeContainer.windowId == packetplayintransaction.a() && !this.player.activeContainer.c(this.player) && !this.player.isSpectator()) {
             this.player.activeContainer.a(this.player, true);
         }
-
     }
 
     public void a(PacketPlayInUpdateSign packetplayinupdatesign) {

@@ -1,11 +1,11 @@
 ﻿namespace Containers
 {
-    public class NumList : System.IDisposable
+    public sealed class NumList : System.IDisposable
     {
         private bool _disposed = false;
 
-        private const int _MinNum = 0;
-        private const int _MaxNum = int.MaxValue;
+        private const int _MIN_NUM = 0;
+        private const int _MAX_NUM = int.MaxValue;
 
         private class Node(int from, int to)
         {
@@ -22,10 +22,10 @@
 
         public NumList()
         {
-            _nodeFirst = new(_MinNum, _MaxNum);
+            _nodeFirst = new(_MIN_NUM, _MAX_NUM);
         }
 
-        ~NumList() => Dispose(false);
+        ~NumList() => System.Diagnostics.Debug.Assert(false);
 
         public int Alloc()
         {
@@ -86,7 +86,9 @@
                     }
                 }
                 else
+                {
                     System.Diagnostics.Debug.Assert(false);
+                }
             }
             else
             {
@@ -133,73 +135,19 @@
 
         }
 
-        protected virtual void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (_disposed == true) return;
+            // Assertions.
+            System.Diagnostics.Debug.Assert(!_disposed);
 
-            if (disposing == true)
-            {
-                // managed objects
-                _nodeFirst = null;
-            }
+            // Release resources.
+            _nodeFirst = null;
 
-            // Release unmanaged objects
-
+            // Finish.
+            System.GC.SuppressFinalize(this);
             _disposed = true;
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-            System.GC.SuppressFinalize(this);
-        }
-
     }
 
-    public class ConcurrentNumList : NumList
-    {
-        private readonly object _SharedResource = new();
-
-        private bool _disposed = false;
-
-        ~ConcurrentNumList() => Dispose(false);
-
-        public new int Alloc()
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            lock (_SharedResource)
-            {
-                return base.Alloc();
-            }
-        }
-
-        public new void Dealloc(int num)
-        {
-            System.Diagnostics.Debug.Assert(!_disposed);
-
-            lock (_SharedResource)
-            {
-                base.Dealloc(num);
-            }
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (!_disposed)
-            {
-                if (disposing == true)
-                {
-                    // Release managed resources.
-                }
-
-                // Release unmanaged resources.
-
-                _disposed = true;
-            }
-
-            base.Dispose(disposing);
-        }
-
-    }
 }
